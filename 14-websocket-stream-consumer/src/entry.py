@@ -1,9 +1,28 @@
 from workers import WorkerEntrypoint, Response, DurableObject
-from wasmsockets.client import connect as ws_connect
 import json
 import time
 import asyncio
 from urllib.parse import urlparse
+
+from asyncio import Queue
+from js import WebSocket
+from pyodide.ffi import create_proxy
+
+async def ws_connect(uri):
+    socket = WebSocket.new(uri)
+    socket.binaryType = "arraybuffer"
+    incoming = Queue()
+    async def message_handler(event):
+        await incoming.put(event.data)
+    socket.addEventListener(
+        'message',
+        create_proxy(message_handler)
+    )
+    class Result:
+        async def recv():
+            return await incoming.get()
+    return Result
+
 
 
 class BlueskyFirehoseConsumer(DurableObject):

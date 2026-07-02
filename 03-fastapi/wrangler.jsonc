@@ -5,7 +5,7 @@
 	"compatibility_date": "2025-11-02",
 	"compatibility_flags": [
 		"python_workers",
-		"python_dedicated_snapshot"
+		"python_process_pth_files"
 	],
 	"vars": {
 		"MESSAGE": "My env var"

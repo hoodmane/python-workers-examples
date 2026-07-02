@@ -9,5 +9,8 @@
 	},
 	"devDependencies": {
 		"wrangler": "^4.46.0"
+	},
+	"dependencies": {
+		"workerd": "^1.20260505.1"
 	}
 }
