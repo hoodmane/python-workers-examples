@@ -1,15 +1,32 @@
-from workers import WorkerEntrypoint, Response, DurableObject
+from workers import WorkerEntrypoint, Response, DurableObject, import_from_javascript
+import js
 import json
 import time
 import asyncio
+from pathlib import Path
 from urllib.parse import urlparse
 
 from asyncio import Queue
-from js import WebSocket
 from pyodide.ffi import create_proxy
 
+# Hand the recorded messages (one JSON message per line) to the JS shim via a
+# global. The shim reads this when it is first imported. Reading the bundled
+# file at import time is fine; importing the JS module must happen later, in an
+# async context (see ws_connect), because import_from_javascript uses JSPI.
+js.RECORDED_MESSAGES = (Path(__file__).parent / "messages.jsonl").read_text()
+
+_ws_shim = None
+
+
 async def ws_connect(uri):
-    socket = WebSocket.new(uri)
+    # Load the record/replay WebSocket shim (a JS ES module). We import it lazily
+    # here rather than at module scope because import_from_javascript relies on
+    # JSPI, which is only available inside an async request/DO context.
+    global _ws_shim
+    if _ws_shim is None:
+        _ws_shim = import_from_javascript("websocket_shim.js")
+
+    socket = _ws_shim.RecordReplayWebSocket.new(uri)
     socket.binaryType = "arraybuffer"
     incoming = Queue()
     async def message_handler(event):
